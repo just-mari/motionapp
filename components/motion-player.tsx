@@ -17,9 +17,12 @@ export function MotionPlayer() {
   } = useMotionDetection(0.5)
 
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const ambientRef1 = useRef<HTMLAudioElement | null>(null)
+  const ambientRef2 = useRef<HTMLAudioElement | null>(null)
   const [audioLoaded, setAudioLoaded] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
+  const [ambientStarted, setAmbientStarted] = useState(false)
 
   // Initialize audio
   useEffect(() => {
@@ -33,11 +36,35 @@ export function MotionPlayer() {
 
     audioRef.current = audio
 
+     // Initialize ambient audio
+    const ambient1 = new Audio("/audio/cosmic-cloud.mp3")
+    ambient1.loop = true
+    ambient1.volume = 0.4
+    ambientRef1.current = ambient1
+
+    const ambient2 = new Audio("/audio/cosmic-guitar.mp3")
+    ambient2.loop = true
+    ambient2.volume = 0.3
+    ambientRef2.current = ambient2
+
     return () => {
       audio.pause()
       audio.src = ""
+      ambient1.pause()
+      ambient1.src = ""
+      ambient2.pause()
+      ambient2.src = ""
     }
   }, [])
+
+   // Start ambient audio once permission is granted (plays continuously)
+  useEffect(() => {
+    if (!permissionGranted || ambientStarted) return
+    
+    ambientRef1.current?.play().catch(console.error)
+    ambientRef2.current?.play().catch(console.error)
+    setAmbientStarted(true)
+  }, [permissionGranted, ambientStarted])
 
   // Play/Pause based on motion
   useEffect(() => {
@@ -207,3 +234,7 @@ export function MotionPlayer() {
     </div>
   )
 }
+function setAmbientStarted(arg0: boolean) {
+  throw new Error("Function not implemented.")
+}
+
