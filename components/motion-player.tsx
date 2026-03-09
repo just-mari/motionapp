@@ -142,16 +142,16 @@ export function MotionPlayer() {
         </div>
 
         <h1 className="text-2xl font-bold text-foreground mb-3 text-balance">
-          Enable Motion Detection
+          Recorrido Evolutivo
         </h1>
 
         <p className="text-muted-foreground mb-8 max-w-xs leading-relaxed">
-          Allow motion access to control the audio with your movements.
+          Archivo de la Vida Orgánica en la Tierra
         </p>
 
         {permissionDenied ? (
           <div className="text-destructive text-sm">
-            Permission denied. Please enable motion in your browser settings.
+            Permiso denegado. Por favor, habilita el movimiento en la configuración de tu navegador.
           </div>
         ) : (
           <Button
@@ -159,7 +159,7 @@ export function MotionPlayer() {
             size="lg"
             className="px-8 py-6 text-lg rounded-full"
           >
-            Start Experience
+            Empezar Simulación
           </Button>
         )}
       </div>
@@ -171,7 +171,7 @@ export function MotionPlayer() {
       {/* Header */}
       <header className="text-center">
         <h1 className="text-xl font-semibold text-foreground tracking-tight">
-          Motion Sound
+          Sonido por Movimiento
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {isMoving ? "Playing..." : "Move to play"}
@@ -227,7 +227,7 @@ export function MotionPlayer() {
                 isMoving ? "bg-primary animate-pulse" : "bg-muted"
               }`}
             />
-            <span className="text-xs text-muted-foreground">Motion</span>
+            <span className="text-xs text-muted-foreground">Movimiento</span>
           </div>
         </div>
       </div>

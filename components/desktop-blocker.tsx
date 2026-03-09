@@ -10,22 +10,22 @@ export function DesktopBlocker() {
       </div>
 
       <h1 className="text-3xl font-bold text-foreground mb-4 text-balance">
-        Smartphone Only
+        Ingresa desde tu teléfono para continuar
       </h1>
 
       <p className="text-muted-foreground text-lg max-w-md leading-relaxed">
-        This experience requires a smartphone with motion sensors. Please open
-        this page on your mobile device to continue.
+        Esta experiencia requiere un teléfono inteligente con sensores de movimiento. Por favor, 
+        abre esta página en tu dispositivo móvil para continuar.
       </p>
 
       <div className="mt-12 flex flex-col gap-2">
         <div className="flex items-center gap-3 text-muted-foreground">
           <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-          <span className="text-sm">Motion detection required</span>
+          <span className="text-sm">Detección de movimiento requerido</span>
         </div>
         <div className="flex items-center gap-3 text-muted-foreground">
           <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-sm">Touch screen needed</span>
+          <span className="text-sm">Pantalla táctil necesaria</span>
         </div>
       </div>
     </div>

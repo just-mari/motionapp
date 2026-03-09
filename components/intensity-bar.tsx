@@ -12,7 +12,7 @@ export function IntensityBar({ intensity, isMoving }: IntensityBarProps) {
   return (
     <div className="flex flex-col items-center gap-3 w-full px-8">
       <span className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-        Motion Intensity
+        Intensidad de Movimiento
       </span>
       <div className="flex gap-1 h-12 items-end w-full justify-center">
         {[...Array(bars)].map((_, i) => {
