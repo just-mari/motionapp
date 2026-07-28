@@ -38,16 +38,16 @@ export const STAGES: Stage[] = [
     visual: "none",
   },
   {
+    id: "timescale",
+    text: "Estamos alrededor de 13 800 millones de años antes del final de la vida orgánica",
+    background: "cool",
+    visual: "sphere",
+  },
+  {
     id: "from-that-moment",
     text: "Desde ese momento,",
     background: "cool",
     visual: "none",
     vignette: true,
-  },
-  {
-    id: "timescale",
-    text: "Estamos alrededor de 13 800 millones de años antes del final de la vida orgánica",
-    background: "cool",
-    visual: "sphere",
   },
 ]
