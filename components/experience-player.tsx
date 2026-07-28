@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useMotionDetection } from "@/hooks/use-motion-detection"
 import { STAGES } from "@/lib/stages"
+import { periodIndexFromProgress } from "@/lib/timeline"
 import { HomeScreen } from "./home-screen"
 import { StageScreen } from "./stage-screen"
 import { SettingsPanel } from "./settings-panel"
@@ -12,14 +13,28 @@ type Phase = "home" | "experience" | "complete"
 
 /** Time (ms) of sustained movement needed to advance one stage. */
 const STAGE_ADVANCE_MS = 6000
+const LEN = STAGES.length
+/** Highest progress motion alone can reach (keeps player on the final stage). */
+const MAX_MOTION_PROGRESS = (LEN - 0.02) / LEN
+
+/** Center of a stage's band, so flooring maps back to the same index. */
+function stageToProgress(i: number) {
+  return (i + 0.5) / LEN
+}
+function progressToStage(p: number) {
+  return Math.min(LEN - 1, Math.max(0, Math.floor(p * LEN)))
+}
 
 export function ExperiencePlayer() {
   const [phase, setPhase] = useState<Phase>("home")
-  const [stageIndex, setStageIndex] = useState(0)
+  const [walkProgress, setWalkProgress] = useState(stageToProgress(0))
   const [isPlaying, setIsPlaying] = useState(true)
   const [muted, setMuted] = useState(false)
   const [ambientVolume, setAmbientVolume] = useState(0.4)
   const [motionSensitivity, setMotionSensitivity] = useState(0.6)
+
+  const stageIndex = progressToStage(walkProgress)
+  const activePeriodIndex = periodIndexFromProgress(walkProgress)
 
   const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } =
     useMotionDetection(motionSensitivity)
@@ -27,7 +42,6 @@ export function ExperiencePlayer() {
   const narrationRef = useRef<HTMLAudioElement | null>(null)
   const ambient1Ref = useRef<HTMLAudioElement | null>(null)
   const ambient2Ref = useRef<HTMLAudioElement | null>(null)
-  const progressRef = useRef(0)
   const ambientStartedRef = useRef(false)
 
   // ---- audio setup ----
@@ -78,7 +92,7 @@ export function ExperiencePlayer() {
     }
   }, [isPlaying, isMoving, phase])
 
-  // ---- movement-driven stage progression ----
+  // ---- movement drives the walk progress: move to evolve ----
   useEffect(() => {
     if (phase !== "experience" || !isPlaying) return
 
@@ -89,19 +103,9 @@ export function ExperiencePlayer() {
       const dt = now - last
       last = now
       if (isMoving) {
-        // faster progress with stronger movement
         const factor = 0.6 + Math.min(motionIntensity, 100) / 100
-        progressRef.current += dt * factor
-        if (progressRef.current >= STAGE_ADVANCE_MS) {
-          progressRef.current = 0
-          setStageIndex((i) => {
-            if (i >= STAGES.length - 1) {
-              setPhase("complete")
-              return i
-            }
-            return i + 1
-          })
-        }
+        const delta = (dt * factor) / (STAGE_ADVANCE_MS * LEN)
+        setWalkProgress((p) => Math.min(MAX_MOTION_PROGRESS, p + delta))
       }
       raf = requestAnimationFrame(tick)
     }
@@ -113,36 +117,43 @@ export function ExperiencePlayer() {
   // ---- handlers ----
   const handleStart = useCallback(async () => {
     await requestPermission()
-    progressRef.current = 0
-    setStageIndex(0)
+    setWalkProgress(stageToProgress(0))
     setIsPlaying(true)
     setPhase("experience")
   }, [requestPermission])
 
   const handlePrev = useCallback(() => {
-    progressRef.current = 0
-    setStageIndex((i) => Math.max(0, i - 1))
+    setWalkProgress((p) => stageToProgress(Math.max(0, progressToStage(p) - 1)))
   }, [])
 
   const handleNext = useCallback(() => {
-    progressRef.current = 0
-    setStageIndex((i) => {
-      if (i >= STAGES.length - 1) {
+    setWalkProgress((p) => {
+      const cur = progressToStage(p)
+      if (cur >= LEN - 1) {
         setPhase("complete")
-        return i
+        return p
       }
-      return i + 1
+      return stageToProgress(cur + 1)
     })
   }, [])
 
+  const handleWalkProgressChange = useCallback((value: number) => {
+    setWalkProgress(Math.min(MAX_MOTION_PROGRESS, Math.max(0, value)))
+  }, [])
+
+  const handleGoHome = useCallback(() => {
+    setPhase("home")
+    ambientStartedRef.current = false
+    ambient1Ref.current?.pause()
+    ambient2Ref.current?.pause()
+    narrationRef.current?.pause()
+  }, [])
+
   const handleRestart = useCallback(() => {
-    progressRef.current = 0
-    setStageIndex(0)
+    setWalkProgress(stageToProgress(0))
     setIsPlaying(true)
     setPhase("experience")
-    if (narrationRef.current) {
-      narrationRef.current.currentTime = 0
-    }
+    if (narrationRef.current) narrationRef.current.currentTime = 0
   }, [])
 
   // ---- unsupported device ----
@@ -198,7 +209,10 @@ export function ExperiencePlayer() {
       onNext={handleNext}
       onSkip={handleNext}
       canPrev={stageIndex > 0}
-      canNext={stageIndex < STAGES.length - 1}
+      canNext={stageIndex < LEN - 1}
+      activePeriodIndex={activePeriodIndex}
+      walkProgress={walkProgress}
+      onWalkProgressChange={handleWalkProgressChange}
       settingsSlot={
         <SettingsPanel
           muted={muted}
@@ -208,6 +222,9 @@ export function ExperiencePlayer() {
           motionSensitivity={motionSensitivity}
           onMotionSensitivityChange={setMotionSensitivity}
           onRestart={handleRestart}
+          onGoHome={handleGoHome}
+          progress={walkProgress}
+          activePeriodIndex={activePeriodIndex}
         />
       }
     />

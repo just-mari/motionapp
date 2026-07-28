@@ -1,5 +1,5 @@
 export type BackgroundVariant = "warm" | "cool" | "black"
-export type VisualVariant = "sphere" | "arrow" | "none"
+export type VisualVariant = "sphere" | "arrow" | "camera" | "none"
 
 export interface Stage {
   id: string
@@ -11,6 +11,8 @@ export interface Stage {
   visual: VisualVariant
   /** Optional darkened center vignette over the mesh. */
   vignette?: boolean
+  /** Interactive stages require an action (e.g. taking a photo) rather than a Skip. */
+  interactive?: boolean
 }
 
 /**
@@ -49,5 +51,12 @@ export const STAGES: Stage[] = [
     background: "cool",
     visual: "none",
     vignette: true,
+  },
+  {
+    id: "find-the-sun",
+    text: "Encuentra el sol",
+    background: "warm",
+    visual: "camera",
+    interactive: true,
   },
 ]
