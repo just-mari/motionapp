@@ -87,7 +87,7 @@ export function ProjectLanding() {
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {FINAL_FORMS.map((f) => (
             <div
               key={f.label}
