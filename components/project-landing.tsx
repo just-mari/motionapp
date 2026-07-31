@@ -154,8 +154,8 @@ export function ProjectLanding() {
         <h2 className="mt-4 text-3xl font-bold sm:text-4xl">Quiénes lo hacen</h2>
         <div className="mt-8 grid gap-6 sm:grid-cols-3">
           {TEAM.map((group) => (
-            <div key
-              <p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">{group.role}</p>
+            <div key = {group.role} className="rounded-2xl border border-border/50 bg-card/40 p-6">
+              <p classname  = "text-xs font-semibold uppercase tracking-[0.15em] text-accent">{group.role}</p>
               <ul className="mt-3 flex flex-col gap-2">
                 {group.names.map((n) => (
                   <li key={n} className="text-sm leading-relaxed text-foreground/85">
