@@ -12,6 +12,7 @@ import {
   Award,
   Info,
   BookMarked,
+  FileText,
   Share2,
   ChevronLeft,
   ChevronRight,
@@ -307,6 +308,23 @@ export function SettingsPanel({
                 Cada etapa representa un momento clave, desde el origen de la vida hace 3800 millones de años hasta la
                 aparición del Homo sapiens.
               </p>
+
+              <div className="mt-1 rounded-2xl border border-border/50 bg-foreground/5 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-accent">Sobre el proyecto</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-foreground/85">
+                  Camino Evolutivo es un proyecto de <strong>investigación-creación</strong> de UNI5LAB (Universidad del
+                  Norte): una experiencia sonora interactiva, con base edu-informativa y respaldada por un artículo
+                  científico, inspirada en el Camino Evolutivo de Plön.
+                </p>
+                <a
+                  href="/proyecto"
+                  className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-[13px] font-semibold text-primary-foreground transition-transform hover:scale-[1.02] active:scale-95"
+                >
+                  <FileText className="h-4 w-4" />
+                  Conoce más del proyecto
+                </a>
+              </div>
+
               <p className="text-xs text-muted-foreground">Camino Evolutivo · experiencia interactiva</p>
             </div>
           )}
