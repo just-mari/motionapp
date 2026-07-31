@@ -10,13 +10,16 @@ const FINAL_FORMS = [
   { emoji: "un hongo", label: "Agaricus bisphorus" },
   { emoji: "una abeja", label: "Apis mellifera" },
   { emoji: "un calamar", label: "Loligo vulgaris" },
+  { emoji: "una guacharaca", label: "Ortalis garrula" },
+  { emoji: "una marmosa", label: "Marmosa magdalenae" },
   { emoji: "un humano", label: "Homo sapiens" },
 ]
 
 const TEAM = [
-  { role: "Dirección", names: ["María Isabella Osio Amaya", "Lorna Campo Pacheco"] },
-  { role: "Producción", names: ["Clara Machacón Rodelo"] },
-  { role: "Casa productora", names: ["UNI5LAB · Universidad del Norte"] },
+  { role: "Dirección General", names: ["Clara Machacón", "María Isabella Osio", "Lorna Campo "] },
+  { role: "Guion", names: ["Lorna Campo", "Clara Machacón", "Ramón Escorcia"] },
+  { role: "Diseño", names: ["Laura Micolta", "Gina Ayala"] },
+  { role: "Producción", names: ["María Cecilia Reyes", "Rafik Neme", "UNI5LAB - UNINORTE"] },
 ]
 
 /**
