@@ -16,10 +16,11 @@ const FINAL_FORMS = [
 ]
 
 const TEAM = [
-  { role: "Dirección General", names: ["Clara Machacón", "María Isabella Osio", "Lorna Campo "] },
-  { role: "Guion", names: ["Lorna Campo", "Clara Machacón", "Ramón Escorcia"] },
+  { role: "Dirección General", names: ["Clara Machacon", "María Isabella Osio", "Lorna Campo "] },
+  { role: "Guion", names: ["Lorna Campo", "Clara Machacon", "Ramón Escorcia"] },
   { role: "Diseño", names: ["Laura Micolta", "Gina Ayala"] },
   { role: "Producción", names: ["María Cecilia Reyes", "Rafik Neme", "UNI5LAB - UNINORTE"] },
+  { role: "Recopilación del material cientifico", names: ["Biología 1", "Biología 2", "Biología 3"] },
 ]
 
 /**
