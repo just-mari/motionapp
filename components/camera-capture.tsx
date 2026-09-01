@@ -73,7 +73,7 @@ export function CameraCapture({ onCaptured }: CameraCaptureProps) {
   }, [startCamera])
 
   return (
-    <div className="flex w-full max-w-xs flex-col items-center">
+    <div className="mx-auto flex w-full max-w-xs flex-col items-center">
       {/* viewfinder frame */}
       <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-black/60">
         {/* live feed or captured photo */}

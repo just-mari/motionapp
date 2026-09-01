@@ -16,22 +16,12 @@ export function TimelineScale({ activeIndex }: TimelineScaleProps) {
 
   // keep the active period scrolled into view
   useEffect(() => {
-    activeRef.current?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" })
+    activeRef.current?.scrollIntoView({ behavior: "auto", inline: "center", block: "nearest" })
   }, [activeIndex])
-
-  const active = PERIODS[Math.min(activeIndex, PERIODS.length - 1)]
 
   return (
     <div className="w-full">
-      {/* header: active milestone */}
-      <div className="px-1 text-center">
-        <p className="truncate font-serif text-base italic text-foreground">{active.title}</p>
-        <p className="text-xs font-medium text-foreground/60">
-          {active.ma > 0 ? `hace ${active.ma.toLocaleString("es")} millones de años` : "hasta el presente"}
-        </p>
-      </div>
-
-      {/* scrollable icon axis */}
+      {/* scrollable icon axis: titles and descriptions appear after tapping an icon */}
       <div
         ref={rowRef}
         className="mt-2 flex items-start gap-1 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
@@ -42,7 +32,6 @@ export function TimelineScale({ activeIndex }: TimelineScaleProps) {
           const isPast = i < activeIndex
           return (
             <div key={p.id} className="flex shrink-0 flex-col items-center" style={{ width: 66 }}>
-              <span className="mb-1 text-[10px] font-semibold tabular-nums text-foreground/50">{p.maLabel}</span>
               <button
                 ref={isActive ? activeRef : undefined}
                 type="button"
@@ -62,9 +51,6 @@ export function TimelineScale({ activeIndex }: TimelineScaleProps) {
                 )}
                 <Icon className="h-5 w-5" strokeWidth={2} />
               </button>
-              <span className="mt-1 line-clamp-2 text-center text-[9px] leading-tight text-foreground/55">
-                {p.title}
-              </span>
             </div>
           )
         })}

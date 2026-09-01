@@ -86,7 +86,7 @@ export function StageScreen({
           </div>
         )}
         {isCamera && (
-          <div key={`camera-${stage.id}`} className="ce-fade-in w-full">
+          <div key={`camera-${stage.id}`} className="ce-fade-in flex w-full justify-center">
             <CameraCapture onCaptured={onNext} />
           </div>
         )}
