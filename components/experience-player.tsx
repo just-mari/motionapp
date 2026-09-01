@@ -40,8 +40,7 @@ export function ExperiencePlayer() {
     useMotionDetection(motionSensitivity)
 
   const narrationRef = useRef<HTMLAudioElement | null>(null)
-  const ambient1Ref = useRef<HTMLAudioElement | null>(null)
-  const ambient2Ref = useRef<HTMLAudioElement | null>(null)
+  const ambientRef = useRef<HTMLAudioElement | null>(null)
   const ambientStartedRef = useRef(false)
 
   // ---- audio setup ----
@@ -50,16 +49,13 @@ export function ExperiencePlayer() {
     narration.preload = "auto"
     narrationRef.current = narration
 
-    const ambient1 = new Audio("/audio/cosmic-cloud.mp3")
-    ambient1.loop = true
-    ambient1Ref.current = ambient1
-
-    const ambient2 = new Audio("/audio/cosmic-guitar.mp3")
-    ambient2.loop = true
-    ambient2Ref.current = ambient2
+    const ambient = new Audio("/audio/cosmic-cloud.mp3")
+    ambient.loop = true
+    ambient.preload = "auto"
+    ambientRef.current = ambient
 
     return () => {
-      ;[narration, ambient1, ambient2].forEach((a) => {
+      ;[narration, ambient].forEach((a) => {
         a.pause()
         a.src = ""
       })
@@ -68,8 +64,7 @@ export function ExperiencePlayer() {
 
   // ---- apply volume / mute ----
   useEffect(() => {
-    if (ambient1Ref.current) ambient1Ref.current.volume = muted ? 0 : ambientVolume
-    if (ambient2Ref.current) ambient2Ref.current.volume = muted ? 0 : ambientVolume * 0.7
+    if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume
     if (narrationRef.current) narrationRef.current.volume = muted ? 0 : 1
   }, [muted, ambientVolume])
 
@@ -77,8 +72,7 @@ export function ExperiencePlayer() {
   useEffect(() => {
     if (phase !== "experience" || ambientStartedRef.current) return
     ambientStartedRef.current = true
-    ambient1Ref.current?.play().catch(() => {})
-    ambient2Ref.current?.play().catch(() => {})
+    ambientRef.current?.play().catch(() => {})
   }, [phase])
 
   // ---- narration follows movement + play state ----
@@ -144,8 +138,7 @@ export function ExperiencePlayer() {
   const handleGoHome = useCallback(() => {
     setPhase("home")
     ambientStartedRef.current = false
-    ambient1Ref.current?.pause()
-    ambient2Ref.current?.pause()
+    ambientRef.current?.pause()
     narrationRef.current?.pause()
   }, [])
 

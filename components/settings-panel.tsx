@@ -128,7 +128,7 @@ export function SettingsPanel({
         </button>
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-[86%] max-w-sm border-border/40 bg-card/95 p-0 backdrop-blur-xl">
+      <SheetContent side="right" className="w-[86%] max-w-sm border-border/40 bg-card/95 p-0 backdrop-blur-xl">
         {/* header */}
         <SheetHeader className="border-b border-border/40 px-5 pb-4 pt-5">
           {view === "menu" ? (
