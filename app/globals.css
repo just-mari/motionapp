@@ -4,25 +4,32 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.08 0.03 200);
-  --foreground: oklch(0.95 0.02 180);
-  --card: oklch(0.12 0.03 200);
-  --card-foreground: oklch(0.95 0.02 180);
-  --popover: oklch(0.12 0.03 200);
-  --popover-foreground: oklch(0.95 0.02 180);
-  --primary: oklch(0.75 0.15 180);
-  --primary-foreground: oklch(0.1 0.03 200);
-  --secondary: oklch(0.18 0.03 200);
-  --secondary-foreground: oklch(0.9 0.02 180);
-  --muted: oklch(0.2 0.03 200);
-  --muted-foreground: oklch(0.6 0.05 180);
-  --accent: oklch(0.7 0.12 165);
-  --accent-foreground: oklch(0.1 0.03 200);
+  --background: oklch(0.04 0.005 280);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.12 0.02 280);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.1 0.02 280);
+  --popover-foreground: oklch(0.98 0 0);
+  /* crimson / magenta — used for the gear button and "Iniciar" CTA */
+  --primary: oklch(0.56 0.22 5);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.2 0.02 280);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.22 0.02 280);
+  --muted-foreground: oklch(0.7 0.02 280);
+  /* lime — used for the playback controls */
+  --accent: oklch(0.82 0.2 124);
+  --accent-foreground: oklch(0.12 0.02 280);
+  /* teal — used for the Skip button */
+  --teal: oklch(0.68 0.11 210);
+  --teal-foreground: oklch(0.99 0 0);
+  /* yellow — used for the main title */
+  --brand-yellow: oklch(0.92 0.19 105);
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.25 0.04 190);
-  --input: oklch(0.15 0.03 200);
-  --ring: oklch(0.75 0.15 180);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.25 0.02 280);
+  --input: oklch(0.15 0.02 280);
+  --ring: oklch(0.56 0.22 5);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -75,8 +82,12 @@
 }
 
 @theme inline {
-  --font-sans: 'Geist', 'Geist Fallback';
+  --font-sans: var(--font-poppins), 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-playfair), 'Playfair Display', ui-serif, Georgia, serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
+  --color-teal: var(--teal);
+  --color-teal-foreground: var(--teal-foreground);
+  --color-brand-yellow: var(--brand-yellow);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -121,5 +132,115 @@
   }
   body {
     @apply bg-background text-foreground;
+    overscroll-behavior: none;
+  }
+}
+
+/* ---- Camino Evolutivo animations ---- */
+
+@keyframes ce-float {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-14px) scale(1.015);
+  }
+}
+
+@keyframes ce-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ce-drift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(3%, -2%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-2%, 3%, 0) scale(0.96);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes ce-arrow-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-18px);
+  }
+}
+
+@keyframes ce-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ce-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes ce-pulse-ring {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.ce-animate-float {
+  animation: ce-float 6s ease-in-out infinite;
+}
+
+.ce-animate-spin-slow {
+  animation: ce-spin-slow 40s linear infinite;
+}
+
+.ce-animate-drift {
+  animation: ce-drift 22s ease-in-out infinite;
+}
+
+.ce-animate-arrow {
+  animation: ce-arrow-bob 1.8s ease-in-out infinite;
+}
+
+.ce-fade-up {
+  animation: ce-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ce-fade-in {
+  animation: ce-fade-in 0.8s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ce-animate-float,
+  .ce-animate-spin-slow,
+  .ce-animate-drift,
+  .ce-animate-arrow,
+  .ce-fade-up,
+  .ce-fade-in {
+    animation: none;
   }
 }
