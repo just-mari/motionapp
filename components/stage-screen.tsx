@@ -1,130 +1,28 @@
 "use client"
 
-import type { Stage } from "@/lib/stages"
+import { useState } from "react"
+import type { Branch, Scene } from "@/data/scenes"
 import { MeshBackground } from "./mesh-background"
 import { OrganicSphere } from "./organic-sphere"
 import { PlaybackControls } from "./playback-controls"
-import { TimelineScale } from "./timeline-scale"
-import { WalkSlider } from "./walk-slider"
 import { CameraCapture } from "./camera-capture"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 
-interface StageScreenProps {
-  stage: Stage
-  isPlaying: boolean
-  isMoving: boolean
-  intensity: number
-  onPrev: () => void
-  onTogglePlay: () => void
-  onNext: () => void
-  onSkip: () => void
-  canPrev: boolean
-  canNext: boolean
-  settingsSlot: React.ReactNode
-  activePeriodIndex: number
-  walkProgress: number
-  onWalkProgressChange: (value: number) => void
-}
+interface Props { scene: Scene; branch?: Branch; accent: string; sceneCount: number; isPlaying: boolean; isMoving: boolean; intensity: number; transcriptOpen: boolean; onTranscriptOpenChange: (open: boolean) => void; onPrev: () => void; onTogglePlay: () => void; onNext: () => void; onChoose: (next: string, branch?: Branch) => void; settingsSlot: React.ReactNode; manualProgress: number; onManualProgressChange: (value: number) => void }
 
-function UpArrow({ active }: { active: boolean }) {
-  return (
-    <div className={active ? "ce-animate-arrow" : undefined}>
-      <svg
-        width="150"
-        height="200"
-        viewBox="0 0 150 200"
-        fill="none"
-        aria-hidden
-        style={{ filter: "drop-shadow(0 12px 30px rgba(0,0,0,0.45))" }}
-      >
-        <path
-          d="M75 8 L142 90 a10 10 0 0 1 -8 16 H104 V184 a10 10 0 0 1 -10 10 H56 a10 10 0 0 1 -10 -10 V106 H16 a10 10 0 0 1 -8 -16 Z"
-          fill="#ffffff"
-        />
-      </svg>
-    </div>
-  )
-}
-
-export function StageScreen({
-  stage,
-  isPlaying,
-  isMoving,
-  intensity,
-  onPrev,
-  onTogglePlay,
-  onNext,
-  onSkip,
-  canPrev,
-  canNext,
-  settingsSlot,
-  activePeriodIndex,
-  walkProgress,
-  onWalkProgressChange,
-}: StageScreenProps) {
-  const isCamera = stage.visual === "camera"
-
-  return (
-    <main className="relative flex min-h-dvh flex-col overflow-hidden">
-      <MeshBackground variant={stage.background} vignette={stage.vignette} active={isMoving} />
-
-      {/* top bar: timeline scale + gear */}
-      <header className="relative z-20 px-3 pt-4">
-        <div className="mb-2 flex justify-end">{settingsSlot}</div>
-        <TimelineScale activeIndex={activePeriodIndex} />
-      </header>
-
-      {/* central visual */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-6 py-4">
-        {stage.visual === "sphere" && (
-          <div key={`sphere-${stage.id}`} className="ce-fade-in">
-            <OrganicSphere intensity={intensity} active={isMoving} />
-          </div>
-        )}
-        {stage.visual === "arrow" && (
-          <div key={`arrow-${stage.id}`} className="ce-fade-in">
-            <UpArrow active={isMoving} />
-          </div>
-        )}
-        {isCamera && (
-          <div key={`camera-${stage.id}`} className="ce-fade-in flex w-full justify-center">
-            <CameraCapture onCaptured={onNext} />
-          </div>
-        )}
-      </div>
-
-      {/* narration + controls */}
-      <div className="relative z-10 flex flex-col items-center gap-5 px-8 pb-6">
-        <p
-          key={`text-${stage.id}`}
-          className="ce-fade-up max-w-md text-balance text-center font-serif text-2xl italic leading-snug text-foreground"
-        >
-          {stage.text}
-        </p>
-
-        <PlaybackControls
-          isPlaying={isPlaying}
-          onPrev={onPrev}
-          onTogglePlay={onTogglePlay}
-          onNext={onNext}
-          canPrev={canPrev}
-          canNext={canNext}
-        />
-
-        {!stage.interactive && (
-          <button
-            type="button"
-            onClick={onSkip}
-            className="rounded-full bg-teal px-10 py-2.5 font-sans text-base font-bold text-teal-foreground shadow-lg shadow-teal/20 transition-transform duration-150 hover:scale-105 active:scale-95"
-          >
-            Skip
-          </button>
-        )}
-
-        {/* bottom time scale: walk-to-evolve slider */}
-        <div className="mt-1 w-full max-w-md">
-          <WalkSlider value={walkProgress} onValueChange={onWalkProgressChange} />
-        </div>
-      </div>
-    </main>
-  )
+export function StageScreen({ scene, accent, sceneCount, isPlaying, isMoving, intensity, transcriptOpen, onTranscriptOpenChange, onPrev, onTogglePlay, onNext, onChoose, settingsSlot, manualProgress, onManualProgressChange }: Props) {
+  const [fallbackVisible, setFallbackVisible] = useState(false)
+  const isDecision = scene.type === "decision"
+  const isCamera = scene.visual === "camera"
+  const advance = () => { setFallbackVisible(false); onNext() }
+  return <main className="relative flex min-h-dvh flex-col overflow-hidden" style={{ "--branch-accent": accent } as React.CSSProperties}>
+    <MeshBackground variant={scene.background} vignette={scene.type === "narracion"} active={isMoving} />
+    <header className="relative z-20 px-6 pt-5"><div className="flex items-center justify-between"><button type="button" onClick={onPrev} aria-label="Volver" className="rounded-full border border-white/25 p-3 text-white">‹</button><div className="text-center text-[11px] uppercase tracking-widest text-white/75"><div>{scene.type === "decision" ? "Decisión" : "El camino"}</div><div className="mt-1 text-[10px]">{scene.phase} / 5</div></div>{settingsSlot}</div><div className="mt-5 flex gap-1">{[1,2,3,4,5].map((phase) => <span key={phase} className="h-1 flex-1 rounded-full" style={{ background: phase <= scene.phase ? accent : "rgba(255,255,255,.25)" }} />)}</div></header>
+    <section className="relative z-10 flex flex-1 flex-col justify-center px-6 py-6"><div className="mb-5 text-center text-xs uppercase tracking-[.2em] text-white/65">{scene.era ?? (isDecision ? "Elección evolutiva" : "Narración")}</div><h1 className="text-balance text-4xl font-bold leading-tight text-white">{scene.title}</h1>{scene.subtitle && <p className="mt-3 text-lg text-white/75">{scene.subtitle}</p>}
+      {scene.visual === "sphere" && <div className="my-5 flex justify-center"><OrganicSphere intensity={intensity} active={isMoving} /></div>}{scene.visual === "camera" && <div className="my-6 flex justify-center"><CameraCapture onCaptured={advance} /></div>}{scene.visual === "arrow" && <div className="my-8 text-center text-7xl text-white/90">↑</div>}
+      {isDecision ? <div className="mt-8 grid gap-3">{scene.options?.map((option) => <button key={option.id} type="button" onClick={() => onChoose(option.next, option.branch)} className="rounded-2xl border border-white/25 bg-black/25 p-5 text-left text-base font-semibold text-white transition hover:bg-white/15 active:scale-[.98]">{option.label}</button>)}</div> : <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/85">{scene.transcript[0]}</p>}
+    </section>
+    <footer className="relative z-10 px-6 pb-7"><div className="mb-4 flex items-center justify-between text-xs text-white/70"><span>〽 EV-A · Narración</span><span>1×</span></div><div className="mb-5 h-1 rounded-full bg-white/25"><div className="h-full rounded-full" style={{ width: `${Math.max(8, manualProgress * 100)}%`, background: accent }} /></div>{!isDecision && <PlaybackControls isPlaying={isPlaying} onPrev={onPrev} onTogglePlay={onTogglePlay} onNext={onNext} canPrev={false} canNext={true} />}<button type="button" onClick={() => onTranscriptOpenChange(true)} className="mx-auto mt-5 block text-sm text-white/75">Desliza hacia arriba para leer</button>{scene.interaction && <button type="button" onClick={() => setFallbackVisible(true)} className="mx-auto mt-3 block text-xs text-white/55 underline">No puedo hacer esto ahora</button>}{fallbackVisible && <button type="button" onClick={advance} className="mx-auto mt-3 block rounded-full px-5 py-2 text-sm font-semibold text-black" style={{ background: accent }}>Continuar con modo táctil</button>}</footer>
+    <Sheet open={transcriptOpen} onOpenChange={onTranscriptOpenChange}><SheetContent side="bottom" className="rounded-t-3xl bg-slate-950 text-white"><SheetHeader><SheetTitle className="text-left text-white">Transcripción</SheetTitle></SheetHeader><div className="mt-5 space-y-4 text-lg leading-relaxed">{scene.transcript.map((text) => <p key={text}>{text}</p>)}</div></SheetContent></Sheet>
+  </main>
 }

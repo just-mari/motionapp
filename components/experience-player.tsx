@@ -1,225 +1,68 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useMotionDetection } from "@/hooks/use-motion-detection"
-import { STAGES } from "@/lib/stages"
-import { periodIndexFromProgress } from "@/lib/timeline"
+import { SCENE_MAP } from "@/data/scenes"
+import type { Branch } from "@/data/scenes"
 import { HomeScreen } from "./home-screen"
 import { StageScreen } from "./stage-screen"
 import { SettingsPanel } from "./settings-panel"
 import { Button } from "@/components/ui/button"
 
-type Phase = "home" | "experience" | "complete"
-
-/** Time (ms) of sustained movement needed to advance one stage. */
-const STAGE_ADVANCE_MS = 6000
-const LEN = STAGES.length
-/** Highest progress motion alone can reach (keeps player on the final stage). */
-const MAX_MOTION_PROGRESS = (LEN - 0.02) / LEN
-
-/** Center of a stage's band, so flooring maps back to the same index. */
-function stageToProgress(i: number) {
-  return (i + 0.5) / LEN
-}
-function progressToStage(p: number) {
-  return Math.min(LEN - 1, Math.max(0, Math.floor(p * LEN)))
-}
+const BRANCH_ACCENTS: Record<Branch, string> = { mango: "#A6D63C", hongo: "#9B6BFF", abeja: "#F5A623", calamar: "#2EC4D6", guacharaca: "#D9694A", marmosa: "#F27BA8", humano: "#5B7CFA" }
+const ROOT = "intro"
 
 export function ExperiencePlayer() {
-  const [phase, setPhase] = useState<Phase>("home")
-  const [walkProgress, setWalkProgress] = useState(stageToProgress(0))
+  const [sceneId, setSceneId] = useState(ROOT)
   const [isPlaying, setIsPlaying] = useState(true)
   const [muted, setMuted] = useState(false)
   const [ambientVolume, setAmbientVolume] = useState(0.4)
   const [motionSensitivity, setMotionSensitivity] = useState(0.6)
-
-  const stageIndex = progressToStage(walkProgress)
-  const activePeriodIndex = periodIndexFromProgress(walkProgress)
-
-  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } =
-    useMotionDetection(motionSensitivity)
-
+  const [branch, setBranch] = useState<Branch | undefined>()
+  const [transcriptOpen, setTranscriptOpen] = useState(false)
+  const [manualProgress, setManualProgress] = useState(0)
   const narrationRef = useRef<HTMLAudioElement | null>(null)
   const ambientRef = useRef<HTMLAudioElement | null>(null)
-  const ambientStartedRef = useRef(false)
+  const scene = SCENE_MAP[sceneId]
+  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = useMotionDetection(motionSensitivity)
 
-  // ---- audio setup ----
   useEffect(() => {
-    const narration = new Audio("/audio/narracion.mp3")
-    narration.preload = "auto"
-    narrationRef.current = narration
-
     const ambient = new Audio("/audio/cosmic-cloud.mp3")
     ambient.loop = true
     ambient.preload = "auto"
     ambientRef.current = ambient
-
-    return () => {
-      ;[narration, ambient].forEach((a) => {
-        a.pause()
-        a.src = ""
-      })
-    }
+    return () => { ambient.pause(); ambient.src = "" }
   }, [])
-
-  // ---- apply volume / mute ----
+  useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume }, [muted, ambientVolume])
   useEffect(() => {
-    if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume
-    if (narrationRef.current) narrationRef.current.volume = muted ? 0 : 1
-  }, [muted, ambientVolume])
-
-  // ---- start ambient once we enter the experience ----
-  useEffect(() => {
-    if (phase !== "experience" || ambientStartedRef.current) return
-    ambientStartedRef.current = true
-    ambientRef.current?.play().catch(() => {})
-  }, [phase])
-
-  // ---- narration follows movement + play state ----
-  useEffect(() => {
-    const narration = narrationRef.current
-    if (!narration || phase !== "experience") return
-    if (isPlaying && isMoving) {
-      narration.play().catch(() => {})
-    } else {
-      narration.pause()
-    }
-  }, [isPlaying, isMoving, phase])
-
-  // ---- movement drives the walk progress: move to evolve ----
-  useEffect(() => {
-    if (phase !== "experience" || !isPlaying) return
-
-    let raf = 0
-    let last = performance.now()
-
-    const tick = (now: number) => {
-      const dt = now - last
-      last = now
-      if (isMoving) {
-        const factor = 0.6 + Math.min(motionIntensity, 100) / 100
-        const delta = (dt * factor) / (STAGE_ADVANCE_MS * LEN)
-        setWalkProgress((p) => Math.min(MAX_MOTION_PROGRESS, p + delta))
-      }
-      raf = requestAnimationFrame(tick)
-    }
-
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [phase, isPlaying, isMoving, motionIntensity])
-
-  // ---- handlers ----
-  const handleStart = useCallback(async () => {
-    await requestPermission()
-    setWalkProgress(stageToProgress(0))
-    setIsPlaying(true)
-    setPhase("experience")
-  }, [requestPermission])
-
-  const handlePrev = useCallback(() => {
-    setWalkProgress((p) => stageToProgress(Math.max(0, progressToStage(p) - 1)))
-  }, [])
-
-  const handleNext = useCallback(() => {
-    setWalkProgress((p) => {
-      const cur = progressToStage(p)
-      if (cur >= LEN - 1) {
-        setPhase("complete")
-        return p
-      }
-      return stageToProgress(cur + 1)
-    })
-  }, [])
-
-  const handleWalkProgressChange = useCallback((value: number) => {
-    setWalkProgress(Math.min(MAX_MOTION_PROGRESS, Math.max(0, value)))
-  }, [])
-
-  const handleGoHome = useCallback(() => {
-    setPhase("home")
-    ambientStartedRef.current = false
-    ambientRef.current?.pause()
+    if (!scene) return
     narrationRef.current?.pause()
-  }, [])
+    const narration = new Audio()
+    narration.preload = "none"
+    narration.volume = muted ? 0 : 1
+    narrationRef.current = narration
+    return () => { narration.pause(); narration.src = "" }
+  }, [sceneId, muted])
+  useEffect(() => {
+    if (!permissionGranted || !ambientRef.current) return
+    ambientRef.current.play().catch(() => {})
+  }, [permissionGranted])
+  useEffect(() => {
+    if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
+    const timer = window.setTimeout(() => scene.next && setSceneId(scene.next), 7000)
+    return () => window.clearTimeout(timer)
+  }, [isMoving, isPlaying, scene])
 
-  const handleRestart = useCallback(() => {
-    setWalkProgress(stageToProgress(0))
-    setIsPlaying(true)
-    setPhase("experience")
-    if (narrationRef.current) narrationRef.current.currentTime = 0
-  }, [])
+  const goNext = useCallback(() => { if (scene?.next) setSceneId(scene.next) }, [scene])
+  const choose = useCallback((next: string, selected?: Branch) => { if (selected) setBranch(selected); setSceneId(next) }, [])
+  const restart = useCallback(() => { setSceneId(ROOT); setBranch(undefined); setManualProgress(0); setIsPlaying(true) }, [])
+  const accent = branch ? BRANCH_ACCENTS[branch] : "var(--accent)"
+  const sceneCount = useMemo(() => Object.keys(SCENE_MAP).indexOf(sceneId) + 1, [sceneId])
 
-  // ---- unsupported device ----
-  if (!isSupported) {
-    return (
-      <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-8 text-center">
-        <h2 className="font-sans text-2xl font-bold text-foreground">Movimiento no disponible</h2>
-        <p className="mt-3 text-pretty text-muted-foreground">
-          Tu dispositivo no admite la detección de movimiento necesaria para esta experiencia.
-        </p>
-      </div>
-    )
-  }
+  if (!isSupported) return <div className="flex min-h-dvh items-center justify-center bg-background p-8 text-center"><p>Movimiento no disponible. Puedes usar el modo táctil para probar la experiencia.</p></div>
+  if (!permissionGranted) return <HomeScreen onStart={async () => { await requestPermission(); setIsPlaying(true) }} permissionDenied={permissionDenied} />
+  if (!scene) return null
+  if (scene.type === "final") return <main className="flex min-h-dvh flex-col items-center justify-center bg-background p-8 text-center" style={{ "--branch-accent": accent } as React.CSSProperties}><h1 className="text-4xl font-bold" style={{ color: accent }}>Fin del camino</h1><p className="mt-4 max-w-sm text-lg">{scene.title} · {scene.subtitle}</p><Button onClick={restart} className="mt-8 rounded-full px-8">Volver a empezar</Button></main>
 
-  if (phase === "home" || !permissionGranted) {
-    return <HomeScreen onStart={handleStart} permissionDenied={permissionDenied} />
-  }
-
-  if (phase === "complete") {
-    return (
-      <main className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-background px-8 text-center">
-        <div className="ce-fade-up flex flex-col items-center">
-          <h2
-            className="font-sans text-4xl font-extrabold text-balance"
-            style={{ color: "var(--brand-yellow)", textShadow: "0 0 24px rgba(244,224,40,0.4)" }}
-          >
-            Fin del camino
-          </h2>
-          <p className="mt-5 max-w-sm text-pretty font-serif text-xl italic text-foreground/90">
-            Has recorrido la evolución de la vida orgánica.
-          </p>
-          <Button
-            onClick={handleRestart}
-            className="mt-10 rounded-full bg-primary px-10 py-6 font-sans text-lg font-bold text-primary-foreground hover:bg-primary/90"
-          >
-            Volver a empezar
-          </Button>
-        </div>
-      </main>
-    )
-  }
-
-  const stage = STAGES[stageIndex]
-
-  return (
-    <StageScreen
-      stage={stage}
-      isPlaying={isPlaying}
-      isMoving={isMoving}
-      intensity={motionIntensity}
-      onPrev={handlePrev}
-      onTogglePlay={() => setIsPlaying((p) => !p)}
-      onNext={handleNext}
-      onSkip={handleNext}
-      canPrev={stageIndex > 0}
-      canNext={stageIndex < LEN - 1}
-      activePeriodIndex={activePeriodIndex}
-      walkProgress={walkProgress}
-      onWalkProgressChange={handleWalkProgressChange}
-      settingsSlot={
-        <SettingsPanel
-          muted={muted}
-          onMutedChange={setMuted}
-          ambientVolume={ambientVolume}
-          onAmbientVolumeChange={setAmbientVolume}
-          motionSensitivity={motionSensitivity}
-          onMotionSensitivityChange={setMotionSensitivity}
-          onRestart={handleRestart}
-          onGoHome={handleGoHome}
-          progress={walkProgress}
-          activePeriodIndex={activePeriodIndex}
-        />
-      }
-    />
-  )
+  return <StageScreen scene={scene} branch={branch} accent={accent} sceneCount={sceneCount} isPlaying={isPlaying} isMoving={isMoving} intensity={motionIntensity} transcriptOpen={transcriptOpen} onTranscriptOpenChange={setTranscriptOpen} onPrev={() => {}} onTogglePlay={() => setIsPlaying((value) => !value)} onNext={goNext} onChoose={choose} settingsSlot={<SettingsPanel muted={muted} onMutedChange={setMuted} ambientVolume={ambientVolume} onAmbientVolumeChange={setAmbientVolume} motionSensitivity={motionSensitivity} onMotionSensitivityChange={setMotionSensitivity} onRestart={restart} onGoHome={restart} progress={manualProgress} activePeriodIndex={scene.phase - 1} />} manualProgress={manualProgress} onManualProgressChange={setManualProgress} />
 }
