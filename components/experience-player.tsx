@@ -37,8 +37,8 @@ export function ExperiencePlayer() {
   useEffect(() => {
     if (!scene) return
     narrationRef.current?.pause()
-    const narration = new Audio()
-    narration.preload = "none"
+    const narration = new Audio("/audio/narracion.mp3")
+    narration.preload = "auto"
     narration.volume = muted ? 0 : 1
     narrationRef.current = narration
     return () => { narration.pause(); narration.src = "" }
@@ -47,6 +47,12 @@ export function ExperiencePlayer() {
     if (!permissionGranted || !ambientRef.current) return
     ambientRef.current.play().catch(() => {})
   }, [permissionGranted])
+  useEffect(() => {
+    const narration = narrationRef.current
+    if (!narration || !scene || !isPlaying) return
+    if (isMoving || scene.type === "narracion") narration.play().catch(() => {})
+    else narration.pause()
+  }, [isMoving, isPlaying, scene])
   useEffect(() => {
     if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
     const timer = window.setTimeout(() => scene.next && setSceneId(scene.next), 7000)

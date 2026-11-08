@@ -1,0 +1,20 @@
+{
+  "source": "/audio/narracion.mp3",
+  "mode": "continuous",
+  "scenes": {
+    "intro": { "start": 0, "end": 12 },
+    "walk": { "start": 12, "end": 24 },
+    "big-bang": { "start": 24, "end": 38 },
+    "find-sun": { "start": 38, "end": 52 },
+    "earth": { "start": 52, "end": 66 },
+    "origin": { "start": 66, "end": 82 },
+    "oxygen": { "start": 82, "end": 99 },
+    "mitochondria": { "start": 99, "end": 118 },
+    "mango-start": { "start": 118, "end": 138 },
+    "mango-land": { "start": 138, "end": 156 },
+    "mango-seeds": { "start": 156, "end": 175 },
+    "mango-flowers": { "start": 175, "end": 196 },
+    "mango-extinction": { "start": 196, "end": 214 },
+    "mango-final": { "start": 214, "end": 232 }
+  }
+}

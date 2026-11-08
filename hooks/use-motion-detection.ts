@@ -1,121 +1,60 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-interface MotionState {
-  isMoving: boolean
-  motionIntensity: number
-  permissionGranted: boolean
-  permissionDenied: boolean
-  isSupported: boolean
-  requestPermission: () => Promise<void>
-}
+type GenericAccelerometer = { x: number | null; y: number | null; z: number | null; start: () => void; stop: () => void; addEventListener: (type: string, listener: () => void) => void }
+type SensorWindow = Window & { Accelerometer?: new (options: { frequency: number }) => GenericAccelerometer }
 
-export function useMotionDetection(threshold = 0.5): MotionState {
-  const [isMoving, setIsMoving] = useState(false)
-  const [motionIntensity, setMotionIntensity] = useState(0)
-  const [permissionGranted, setPermissionGranted] = useState(false)
-  const [permissionDenied, setPermissionDenied] = useState(false)
-  const [isSupported, setIsSupported] = useState(true)
+interface MotionState { isMoving: boolean; motionIntensity: number; permissionGranted: boolean; permissionDenied: boolean; isSupported: boolean; stepCount: number; eventRate: number; lastMagnitude: number; requestPermission: () => Promise<void> }
 
-  const lastAcceleration = useRef({ x: 0, y: 0, z: 0 })
-  const movementTimeout = useRef<NodeJS.Timeout | null>(null)
+export function useMotionDetection(sensitivity = 0.6): MotionState {
+  const [state, setState] = useState({ isMoving: false, motionIntensity: 0, permissionGranted: false, permissionDenied: false, isSupported: true, stepCount: 0, eventRate: 0, lastMagnitude: 0 })
+  const samples = useRef<number[]>([])
+  const steps = useRef<number[]>([])
+  const lastPeak = useRef(0)
+  const lastEvent = useRef(0)
+  const eventTimes = useRef<number[]>([])
+  const wakeLock = useRef<WakeLockSentinel | null>(null)
+  const genericSensor = useRef<GenericAccelerometer | null>(null)
 
-  useEffect(() => {
-    const supported =
-      typeof window !== "undefined" && "DeviceMotionEvent" in window
-    setIsSupported(supported)
-  }, [])
+  const processMagnitude = useCallback((x: number, y: number, z: number) => {
+    const now = performance.now()
+    const magnitude = Math.sqrt(x * x + y * y + z * z)
+    const delta = Math.abs(magnitude - (lastEvent.current || magnitude))
+    lastEvent.current = magnitude
+    samples.current = [...samples.current.slice(-59), delta]
+    const mean = samples.current.reduce((sum, value) => sum + value, 0) / samples.current.length
+    const variance = samples.current.reduce((sum, value) => sum + (value - mean) ** 2, 0) / samples.current.length
+    const threshold = Math.max(0.12, mean + (1.35 - sensitivity) * Math.sqrt(variance))
+    const previous = samples.current.at(-2) ?? 0
+    const isPeak = delta > threshold && delta >= previous && now - lastPeak.current > 300
+    if (isPeak) { lastPeak.current = now; steps.current = [...steps.current.filter((time) => now - time < 2500), now] }
+    steps.current = steps.current.filter((time) => now - time < 2500)
+    eventTimes.current = [...eventTimes.current.filter((time) => now - time < 1000), now]
+    setState((current) => ({ ...current, isMoving: steps.current.length >= 2, motionIntensity: Math.min(100, current.motionIntensity * 0.75 + Math.min(100, delta * 90) * 0.25), stepCount: steps.current.length, eventRate: eventTimes.current.length, lastMagnitude: magnitude }))
+  }, [sensitivity])
 
-  const handleMotion = useCallback(
-    (event: DeviceMotionEvent) => {
-      const acceleration = event.accelerationIncludingGravity
-
-      if (!acceleration) return
-
-      const deltaX = Math.abs(
-        (acceleration.x || 0) - lastAcceleration.current.x
-      )
-      const deltaY = Math.abs(
-        (acceleration.y || 0) - lastAcceleration.current.y
-      )
-      const deltaZ = Math.abs(
-        (acceleration.z || 0) - lastAcceleration.current.z
-      )
-
-      const totalMotion = deltaX + deltaY + deltaZ
-
-      lastAcceleration.current = {
-        x: acceleration.x || 0,
-        y: acceleration.y || 0,
-        z: acceleration.z || 0,
-      }
-
-      // Smooth the intensity value
-      setMotionIntensity((prev) => {
-        const newIntensity = Math.min(totalMotion * 2, 100)
-        return prev * 0.7 + newIntensity * 0.3
-      })
-
-      if (totalMotion > threshold) {
-        setIsMoving(true)
-
-        // Clear existing timeout
-        if (movementTimeout.current) {
-          clearTimeout(movementTimeout.current)
-        }
-
-        // Set timeout to detect when movement stops
-        movementTimeout.current = setTimeout(() => {
-          setIsMoving(false)
-          setMotionIntensity(0)
-        }, 200)
-      }
-    },
-    [threshold]
-  )
+  const handleMotion = useCallback((event: DeviceMotionEvent) => {
+    const acceleration = event.accelerationIncludingGravity ?? event.acceleration
+    if (acceleration) processMagnitude(acceleration.x ?? 0, acceleration.y ?? 0, acceleration.z ?? 0)
+  }, [processMagnitude])
 
   const requestPermission = useCallback(async () => {
-    if (
-      typeof DeviceMotionEvent !== "undefined" &&
-      // @ts-expect-error - requestPermission is only available on iOS 13+
-      typeof DeviceMotionEvent.requestPermission === "function"
-    ) {
-      try {
-        // @ts-expect-error - requestPermission is only available on iOS 13+
-        const permission = await DeviceMotionEvent.requestPermission()
-        if (permission === "granted") {
-          setPermissionGranted(true)
-          setPermissionDenied(false)
-          window.addEventListener("devicemotion", handleMotion)
-        } else {
-          setPermissionDenied(true)
-        }
-      } catch {
-        setPermissionDenied(true)
-      }
-    } else {
-      // Non-iOS devices don't need permission
-      setPermissionGranted(true)
+    try {
+      const motion = DeviceMotionEvent as typeof DeviceMotionEvent & { requestPermission?: () => Promise<string> }
+      const orientation = DeviceOrientationEvent as typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> }
+      if (motion.requestPermission && (await motion.requestPermission()) !== "granted") throw new Error("motion-denied")
+      if (orientation.requestPermission && (await orientation.requestPermission()) !== "granted") throw new Error("orientation-denied")
       window.addEventListener("devicemotion", handleMotion)
-    }
-  }, [handleMotion])
-
-  useEffect(() => {
-    return () => {
-      window.removeEventListener("devicemotion", handleMotion)
-      if (movementTimeout.current) {
-        clearTimeout(movementTimeout.current)
+      setState((current) => ({ ...current, permissionGranted: true, permissionDenied: false }))
+      if ("wakeLock" in navigator) wakeLock.current = await navigator.wakeLock.request("screen").catch(() => null)
+      if (!("DeviceMotionEvent" in window)) {
+        const Sensor = (window as SensorWindow).Accelerometer
+        if (Sensor) { const sensor = new Sensor({ frequency: 30 }); sensor.addEventListener("reading", () => processMagnitude(sensor.x ?? 0, sensor.y ?? 0, sensor.z ?? 0)); sensor.start(); genericSensor.current = sensor }
       }
-    }
-  }, [handleMotion])
+    } catch { setState((current) => ({ ...current, permissionDenied: true })) }
+  }, [handleMotion, processMagnitude])
 
-  return {
-    isMoving,
-    motionIntensity,
-    permissionGranted,
-    permissionDenied,
-    isSupported,
-    requestPermission,
-  }
+  useEffect(() => () => { window.removeEventListener("devicemotion", handleMotion); genericSensor.current?.stop(); wakeLock.current?.release() }, [handleMotion])
+  return { ...state, requestPermission }
 }
