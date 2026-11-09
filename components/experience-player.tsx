@@ -21,7 +21,7 @@ export function ExperiencePlayer() {
   const [branch, setBranch] = useState<Branch | undefined>()
   const [transcriptOpen, setTranscriptOpen] = useState(false)
   const [manualProgress, setManualProgress] = useState(0)
-  const narrationRef = useRef<HTMLAudioElement | null>(null)
+  const narrationRef = useRef<SpeechSynthesisUtterance | null>(null)
   const ambientRef = useRef<HTMLAudioElement | null>(null)
   const scene = SCENE_MAP[sceneId]
   const motion = useMotionDetection(motionSensitivity)
@@ -36,24 +36,26 @@ export function ExperiencePlayer() {
   }, [])
   useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume }, [muted, ambientVolume])
   useEffect(() => {
-    if (!scene) return
-    narrationRef.current?.pause()
-    const narration = new Audio("/audio/narracion.mp3")
-    narration.preload = "auto"
+    if (!scene || typeof window === "undefined" || !("speechSynthesis" in window)) return
+    window.speechSynthesis.cancel()
+    const narration = new SpeechSynthesisUtterance(scene.transcript.join(" "))
+    narration.lang = "es-ES"
+    narration.rate = 0.92
+    narration.pitch = 1
     narration.volume = muted ? 0 : 1
-    narration.onerror = () => { if (typeof window !== "undefined" && "speechSynthesis" in window) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(scene.transcript.join(" ")); utterance.lang = "es-ES"; utterance.rate = 0.92; window.speechSynthesis.speak(utterance) } }
     narrationRef.current = narration
-    return () => { narration.pause(); narration.src = ""; if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel() }
-  }, [sceneId, muted])
+    return () => { window.speechSynthesis.cancel(); narrationRef.current = null }
+  }, [sceneId, muted, scene])
   useEffect(() => {
     if (!permissionGranted || !ambientRef.current) return
     ambientRef.current.play().catch(() => {})
   }, [permissionGranted])
   useEffect(() => {
     const narration = narrationRef.current
-    if (!narration || !scene || !isPlaying) return
-    if (scene.interaction || scene.type === "narracion" || isMoving) { narration.volume = muted ? 0 : 1; narration.play().catch(() => {}) }
-    else { narration.volume = muted ? 0 : 0.25; window.setTimeout(() => { if (narrationRef.current === narration && !isMoving) narration.pause() }, 3000) }
+    if (!narration || !scene || !isPlaying || typeof window === "undefined") return
+    window.speechSynthesis.cancel()
+    if (scene.interaction || scene.type === "narracion" || isMoving) { narration.volume = muted ? 0 : 1; window.speechSynthesis.speak(narration) }
+    else { narration.volume = muted ? 0 : 0.28; window.speechSynthesis.speak(narration) }
   }, [isMoving, isPlaying, muted, scene])
   useEffect(() => {
     if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
