@@ -1,7 +1,6 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { useEffect, useState } from "react"
 
 interface MangoVisualProps { sceneId: string; active: boolean; intensity: number }
 
@@ -10,10 +9,8 @@ const visualByScene: Record<string, string> = {
 }
 
 export function MangoVisual({ sceneId, active, intensity }: MangoVisualProps) {
-  const [visible, setVisible] = useState(true)
-  useEffect(() => { const onVisibility = () => setVisible(document.visibilityState === "visible"); document.addEventListener("visibilitychange", onVisibility); return () => document.removeEventListener("visibilitychange", onVisibility) }, [])
   const kind = visualByScene[sceneId] ?? "energy"
-  return <div aria-hidden className={cn("mango-visual", `mango-visual-${kind}`, active && "mango-visual-active", !visible && "[animation-play-state:paused]")} style={{ "--motion": `${Math.min(1, intensity / 100)}` } as React.CSSProperties}>
+  return <div aria-hidden className={cn("mango-visual", `mango-visual-${kind}`, active && "mango-visual-active")} style={{ "--motion": `${Math.min(1, intensity / 100)}` } as React.CSSProperties}>
     {kind === "energy" && <><span className="energy-core" /><i /><i /><i /><i /></>}
     {kind === "stars" && <><span className="star-burst" /><span className="star-field" /></>}
     {kind === "sun" && <><span className="sun-disc" /><span className="sun-crosshair" /></>}

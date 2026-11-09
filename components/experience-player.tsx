@@ -21,19 +21,11 @@ export function ExperiencePlayer() {
   const [branch, setBranch] = useState<Branch | undefined>()
   const [transcriptOpen, setTranscriptOpen] = useState(false)
   const [manualProgress, setManualProgress] = useState(0)
-  const narrationRef = useRef<SpeechSynthesisUtterance | null>(null)
+  const narrationRef = useRef<HTMLAudioElement | null>(null)
   const ambientRef = useRef<HTMLAudioElement | null>(null)
-  const branchAudioRef = useRef<HTMLAudioElement | null>(null)
   const scene = SCENE_MAP[sceneId]
-  const motion = useMotionDetection(motionSensitivity)
-  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = motion
+  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = useMotionDetection(motionSensitivity)
 
-  useEffect(() => {
-    const branchAudio = new Audio("/audio/rama-mango.mp3")
-    branchAudio.preload = "auto"
-    branchAudioRef.current = branchAudio
-    return () => { branchAudio.pause(); branchAudio.src = "" }
-  }, [])
   useEffect(() => {
     const ambient = new Audio("/audio/cosmic-cloud.mp3")
     ambient.loop = true
@@ -41,32 +33,26 @@ export function ExperiencePlayer() {
     ambientRef.current = ambient
     return () => { ambient.pause(); ambient.src = "" }
   }, [])
-  useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : Math.min(0.08, ambientVolume * 0.2) }, [muted, ambientVolume])
+  useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume }, [muted, ambientVolume])
   useEffect(() => {
-    if (!scene || branch === "mango" || typeof window === "undefined" || !("speechSynthesis" in window)) return
-    window.speechSynthesis.cancel()
-    const narration = new SpeechSynthesisUtterance(scene.transcript.join(" "))
-    narration.lang = "es-ES"
-    narration.rate = 0.92
-    narration.pitch = 1
+    if (!scene) return
+    narrationRef.current?.pause()
+    const narration = new Audio("/audio/narracion.mp3")
+    narration.preload = "auto"
     narration.volume = muted ? 0 : 1
     narrationRef.current = narration
-    return () => { window.speechSynthesis.cancel(); narrationRef.current = null }
-  }, [sceneId, muted, scene])
+    return () => { narration.pause(); narration.src = "" }
+  }, [sceneId, muted])
   useEffect(() => {
-    if (!permissionGranted) return
-    ambientRef.current?.play().catch(() => {})
-    const branchAudio = branchAudioRef.current
-    if (branch === "mango" && isPlaying) { branchAudio?.play().catch(() => {}) } else { branchAudio?.pause() }
-  }, [permissionGranted, branch, isPlaying])
-  useEffect(() => { if (branchAudioRef.current) branchAudioRef.current.volume = muted ? 0 : 1 }, [muted])
+    if (!permissionGranted || !ambientRef.current) return
+    ambientRef.current.play().catch(() => {})
+  }, [permissionGranted])
   useEffect(() => {
     const narration = narrationRef.current
-    if (!narration || !scene || branch === "mango" || !isPlaying || typeof window === "undefined") return
-    window.speechSynthesis.cancel()
-    narration.volume = muted ? 0 : 1
-    window.speechSynthesis.speak(narration)
-  }, [isPlaying, muted, scene])
+    if (!narration || !scene || !isPlaying) return
+    if (isMoving || scene.type === "narracion") narration.play().catch(() => {})
+    else narration.pause()
+  }, [isMoving, isPlaying, scene])
   useEffect(() => {
     if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
     const timer = window.setTimeout(() => scene.next && setSceneId(scene.next), 7000)
@@ -80,10 +66,9 @@ export function ExperiencePlayer() {
   const sceneCount = useMemo(() => Object.keys(SCENE_MAP).indexOf(sceneId) + 1, [sceneId])
 
   if (!isSupported) return <div className="flex min-h-dvh items-center justify-center bg-background p-8 text-center"><p>Movimiento no disponible. Puedes usar el modo táctil para probar la experiencia.</p></div>
-  if (!permissionGranted) return <HomeScreen onStart={() => { requestPermission(); setIsPlaying(true) }} permissionDenied={permissionDenied} />
+  if (!permissionGranted) return <HomeScreen onStart={async () => { await requestPermission(); setIsPlaying(true) }} permissionDenied={permissionDenied} />
   if (!scene) return null
   if (scene.type === "final") return <main className="flex min-h-dvh flex-col items-center justify-center bg-background p-8 text-center" style={{ "--branch-accent": accent } as React.CSSProperties}><h1 className="text-4xl font-bold" style={{ color: accent }}>Fin del camino</h1><p className="mt-4 max-w-sm text-lg">{scene.title} · {scene.subtitle}</p><Button onClick={restart} className="mt-8 rounded-full px-8">Volver a empezar</Button></main>
 
-  const debug = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1"
-  return <><StageScreen scene={scene} branch={branch} accent={accent} sceneCount={sceneCount} isPlaying={isPlaying} isMoving={isMoving} intensity={motionIntensity} transcriptOpen={transcriptOpen} onTranscriptOpenChange={setTranscriptOpen} onPrev={() => {}} onTogglePlay={() => setIsPlaying((value) => !value)} onNext={goNext} onChoose={choose} settingsSlot={<SettingsPanel muted={muted} onMutedChange={setMuted} ambientVolume={ambientVolume} onAmbientVolumeChange={setAmbientVolume} motionSensitivity={motionSensitivity} onMotionSensitivityChange={setMotionSensitivity} onRestart={restart} onGoHome={restart} progress={manualProgress} activePeriodIndex={scene.phase - 1} />} manualProgress={manualProgress} onManualProgressChange={setManualProgress} />{debug && <aside className="fixed bottom-2 left-2 z-50 rounded-lg bg-black/80 p-3 font-mono text-[10px] text-white">{motion.eventRate} eps · {motion.filteredMagnitude.toFixed(3)} filtrada · umbral {motion.threshold.toFixed(3)} · pasos {motion.stepCount} · {motion.isMoving ? "caminando" : "detenido"} · {motion.lastReason}</aside>}</>
+  return <StageScreen scene={scene} branch={branch} accent={accent} sceneCount={sceneCount} isPlaying={isPlaying} isMoving={isMoving} intensity={motionIntensity} transcriptOpen={transcriptOpen} onTranscriptOpenChange={setTranscriptOpen} onPrev={() => {}} onTogglePlay={() => setIsPlaying((value) => !value)} onNext={goNext} onChoose={choose} settingsSlot={<SettingsPanel muted={muted} onMutedChange={setMuted} ambientVolume={ambientVolume} onAmbientVolumeChange={setAmbientVolume} motionSensitivity={motionSensitivity} onMotionSensitivityChange={setMotionSensitivity} onRestart={restart} onGoHome={restart} progress={manualProgress} activePeriodIndex={scene.phase - 1} />} manualProgress={manualProgress} onManualProgressChange={setManualProgress} />
 }
