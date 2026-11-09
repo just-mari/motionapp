@@ -24,7 +24,8 @@ export function ExperiencePlayer() {
   const narrationRef = useRef<HTMLAudioElement | null>(null)
   const ambientRef = useRef<HTMLAudioElement | null>(null)
   const scene = SCENE_MAP[sceneId]
-  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = useMotionDetection(motionSensitivity)
+  const motion = useMotionDetection(motionSensitivity)
+  const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = motion
 
   useEffect(() => {
     const ambient = new Audio("/audio/cosmic-cloud.mp3")
@@ -50,9 +51,9 @@ export function ExperiencePlayer() {
   useEffect(() => {
     const narration = narrationRef.current
     if (!narration || !scene || !isPlaying) return
-    if (isMoving || scene.type === "narracion") narration.play().catch(() => {})
-    else narration.pause()
-  }, [isMoving, isPlaying, scene])
+    if (scene.interaction || scene.type === "narracion" || isMoving) { narration.volume = muted ? 0 : 1; narration.play().catch(() => {}) }
+    else { narration.volume = muted ? 0 : 0.25; window.setTimeout(() => { if (narrationRef.current === narration && !isMoving) narration.pause() }, 3000) }
+  }, [isMoving, isPlaying, muted, scene])
   useEffect(() => {
     if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
     const timer = window.setTimeout(() => scene.next && setSceneId(scene.next), 7000)
@@ -66,9 +67,10 @@ export function ExperiencePlayer() {
   const sceneCount = useMemo(() => Object.keys(SCENE_MAP).indexOf(sceneId) + 1, [sceneId])
 
   if (!isSupported) return <div className="flex min-h-dvh items-center justify-center bg-background p-8 text-center"><p>Movimiento no disponible. Puedes usar el modo táctil para probar la experiencia.</p></div>
-  if (!permissionGranted) return <HomeScreen onStart={async () => { await requestPermission(); setIsPlaying(true) }} permissionDenied={permissionDenied} />
+  if (!permissionGranted) return <HomeScreen onStart={() => { requestPermission(); setIsPlaying(true) }} permissionDenied={permissionDenied} />
   if (!scene) return null
   if (scene.type === "final") return <main className="flex min-h-dvh flex-col items-center justify-center bg-background p-8 text-center" style={{ "--branch-accent": accent } as React.CSSProperties}><h1 className="text-4xl font-bold" style={{ color: accent }}>Fin del camino</h1><p className="mt-4 max-w-sm text-lg">{scene.title} · {scene.subtitle}</p><Button onClick={restart} className="mt-8 rounded-full px-8">Volver a empezar</Button></main>
 
-  return <StageScreen scene={scene} branch={branch} accent={accent} sceneCount={sceneCount} isPlaying={isPlaying} isMoving={isMoving} intensity={motionIntensity} transcriptOpen={transcriptOpen} onTranscriptOpenChange={setTranscriptOpen} onPrev={() => {}} onTogglePlay={() => setIsPlaying((value) => !value)} onNext={goNext} onChoose={choose} settingsSlot={<SettingsPanel muted={muted} onMutedChange={setMuted} ambientVolume={ambientVolume} onAmbientVolumeChange={setAmbientVolume} motionSensitivity={motionSensitivity} onMotionSensitivityChange={setMotionSensitivity} onRestart={restart} onGoHome={restart} progress={manualProgress} activePeriodIndex={scene.phase - 1} />} manualProgress={manualProgress} onManualProgressChange={setManualProgress} />
+  const debug = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("debug") === "1"
+  return <><StageScreen scene={scene} branch={branch} accent={accent} sceneCount={sceneCount} isPlaying={isPlaying} isMoving={isMoving} intensity={motionIntensity} transcriptOpen={transcriptOpen} onTranscriptOpenChange={setTranscriptOpen} onPrev={() => {}} onTogglePlay={() => setIsPlaying((value) => !value)} onNext={goNext} onChoose={choose} settingsSlot={<SettingsPanel muted={muted} onMutedChange={setMuted} ambientVolume={ambientVolume} onAmbientVolumeChange={setAmbientVolume} motionSensitivity={motionSensitivity} onMotionSensitivityChange={setMotionSensitivity} onRestart={restart} onGoHome={restart} progress={manualProgress} activePeriodIndex={scene.phase - 1} />} manualProgress={manualProgress} onManualProgressChange={setManualProgress} />{debug && <aside className="fixed bottom-2 left-2 z-50 rounded-lg bg-black/80 p-3 font-mono text-[10px] text-white">{motion.eventRate} eps · {motion.filteredMagnitude.toFixed(3)} filtrada · umbral {motion.threshold.toFixed(3)} · pasos {motion.stepCount} · {motion.isMoving ? "caminando" : "detenido"} · {motion.lastReason}</aside>}</>
 }
