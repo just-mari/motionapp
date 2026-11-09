@@ -41,7 +41,7 @@ export function ExperiencePlayer() {
     ambientRef.current = ambient
     return () => { ambient.pause(); ambient.src = "" }
   }, [])
-  useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume }, [muted, ambientVolume])
+  useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : Math.min(0.08, ambientVolume * 0.2) }, [muted, ambientVolume])
   useEffect(() => {
     if (!scene || branch === "mango" || typeof window === "undefined" || !("speechSynthesis" in window)) return
     window.speechSynthesis.cancel()
@@ -64,9 +64,9 @@ export function ExperiencePlayer() {
     const narration = narrationRef.current
     if (!narration || !scene || branch === "mango" || !isPlaying || typeof window === "undefined") return
     window.speechSynthesis.cancel()
-    if (scene.interaction || scene.type === "narracion" || isMoving) { narration.volume = muted ? 0 : 1; window.speechSynthesis.speak(narration) }
-    else { narration.volume = muted ? 0 : 0.28; window.speechSynthesis.speak(narration) }
-  }, [isMoving, isPlaying, muted, scene])
+    narration.volume = muted ? 0 : 1
+    window.speechSynthesis.speak(narration)
+  }, [isPlaying, muted, scene])
   useEffect(() => {
     if (!scene || !isPlaying || (scene.type !== "caminata" && scene.type !== "narracion") || !isMoving) return
     const timer = window.setTimeout(() => scene.next && setSceneId(scene.next), 7000)
