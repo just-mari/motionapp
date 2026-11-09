@@ -33,7 +33,7 @@ export function useMotionDetection(sensitivity = 0.6): MotionState {
     const rotationMean = rotationSamples.current.reduce((sum, value) => sum + value, 0) / rotationSamples.current.length
     const rotationVariance = rotationSamples.current.reduce((sum, value) => sum + (value - rotationMean) ** 2, 0) / rotationSamples.current.length
     const threshold = Math.max(0.12, mean + (1.65 - sensitivity) * Math.sqrt(variance))
-    const isPeak = highPass.current > threshold && highPass.current >= (samples.current.at(-2) ?? 0) && now - lastPeak.current >= 250 && (now - lastPeak.current < 333 || lastPeak.current === 0)
+    const isPeak = highPass.current > threshold && highPass.current >= (samples.current.at(-2) ?? 0) && now - lastPeak.current >= 250
     if (isPeak || rotationVariance > threshold * 2) { lastPeak.current = now; steps.current = [...steps.current.filter((time) => now - time < 1500), now] }
     steps.current = steps.current.filter((time) => now - time < 1500)
     eventTimes.current = [...eventTimes.current.filter((time) => now - time < 1000), now]

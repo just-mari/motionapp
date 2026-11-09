@@ -41,8 +41,9 @@ export function ExperiencePlayer() {
     const narration = new Audio("/audio/narracion.mp3")
     narration.preload = "auto"
     narration.volume = muted ? 0 : 1
+    narration.onerror = () => { if (typeof window !== "undefined" && "speechSynthesis" in window) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(scene.transcript.join(" ")); utterance.lang = "es-ES"; utterance.rate = 0.92; window.speechSynthesis.speak(utterance) } }
     narrationRef.current = narration
-    return () => { narration.pause(); narration.src = "" }
+    return () => { narration.pause(); narration.src = ""; if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel() }
   }, [sceneId, muted])
   useEffect(() => {
     if (!permissionGranted || !ambientRef.current) return

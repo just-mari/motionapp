@@ -75,7 +75,7 @@ export function CameraCapture({ onCaptured }: CameraCaptureProps) {
   return (
     <div className="mx-auto flex w-full max-w-xs flex-col items-center">
       {/* viewfinder frame */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-lg bg-black/60">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl bg-black/60 shadow-2xl">
         {/* live feed or captured photo */}
         {photo ? (
           // eslint-disable-next-line @next/next/no-img-element
