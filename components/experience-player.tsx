@@ -23,10 +23,17 @@ export function ExperiencePlayer() {
   const [manualProgress, setManualProgress] = useState(0)
   const narrationRef = useRef<SpeechSynthesisUtterance | null>(null)
   const ambientRef = useRef<HTMLAudioElement | null>(null)
+  const branchAudioRef = useRef<HTMLAudioElement | null>(null)
   const scene = SCENE_MAP[sceneId]
   const motion = useMotionDetection(motionSensitivity)
   const { isMoving, motionIntensity, permissionGranted, permissionDenied, isSupported, requestPermission } = motion
 
+  useEffect(() => {
+    const branchAudio = new Audio("/audio/rama-mango.mp3")
+    branchAudio.preload = "auto"
+    branchAudioRef.current = branchAudio
+    return () => { branchAudio.pause(); branchAudio.src = "" }
+  }, [])
   useEffect(() => {
     const ambient = new Audio("/audio/cosmic-cloud.mp3")
     ambient.loop = true
@@ -36,7 +43,7 @@ export function ExperiencePlayer() {
   }, [])
   useEffect(() => { if (ambientRef.current) ambientRef.current.volume = muted ? 0 : ambientVolume }, [muted, ambientVolume])
   useEffect(() => {
-    if (!scene || typeof window === "undefined" || !("speechSynthesis" in window)) return
+    if (!scene || branch === "mango" || typeof window === "undefined" || !("speechSynthesis" in window)) return
     window.speechSynthesis.cancel()
     const narration = new SpeechSynthesisUtterance(scene.transcript.join(" "))
     narration.lang = "es-ES"
@@ -47,12 +54,15 @@ export function ExperiencePlayer() {
     return () => { window.speechSynthesis.cancel(); narrationRef.current = null }
   }, [sceneId, muted, scene])
   useEffect(() => {
-    if (!permissionGranted || !ambientRef.current) return
-    ambientRef.current.play().catch(() => {})
-  }, [permissionGranted])
+    if (!permissionGranted) return
+    ambientRef.current?.play().catch(() => {})
+    const branchAudio = branchAudioRef.current
+    if (branch === "mango" && isPlaying) { branchAudio?.play().catch(() => {}) } else { branchAudio?.pause() }
+  }, [permissionGranted, branch, isPlaying])
+  useEffect(() => { if (branchAudioRef.current) branchAudioRef.current.volume = muted ? 0 : 1 }, [muted])
   useEffect(() => {
     const narration = narrationRef.current
-    if (!narration || !scene || !isPlaying || typeof window === "undefined") return
+    if (!narration || !scene || branch === "mango" || !isPlaying || typeof window === "undefined") return
     window.speechSynthesis.cancel()
     if (scene.interaction || scene.type === "narracion" || isMoving) { narration.volume = muted ? 0 : 1; window.speechSynthesis.speak(narration) }
     else { narration.volume = muted ? 0 : 0.28; window.speechSynthesis.speak(narration) }
